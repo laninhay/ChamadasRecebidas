@@ -38,11 +38,9 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
         holder.id.setText(Integer.toString(currentItem.getId()));
         holder.number.setText(currentItem.getNumber());
 
-        // 4. Configurar o clique curto no item inteiro (itemView)
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // Passa o item clicado de volta para a MainActivity
                 listener.onItemClick(currentItem);
             }
         });

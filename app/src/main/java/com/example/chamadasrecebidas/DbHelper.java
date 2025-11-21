@@ -50,5 +50,4 @@ public class DbHelper extends SQLiteOpenHelper {
         String[] selectionArgs = { String.valueOf(id) };
         database.delete(DbContract.TABLE_NAME, selection, selectionArgs);
     }
-
 }

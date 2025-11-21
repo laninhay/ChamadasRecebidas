@@ -1,25 +1,22 @@
 package com.example.chamadasrecebidas;
 
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.TextView;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import android.app.AlertDialog;
-import android.content.DialogInterface;
-import android.widget.TextView;
 
 import java.util.ArrayList;
 
@@ -45,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
         recyclerAdapter = new RecyclerAdapter(arrayList, new RecyclerAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(IncomingNumber item) {
-                // Quando clicar, chama o método que mostra o diálogo
                 showDeleteDialog(item);
             }
         });
@@ -66,26 +62,17 @@ public class MainActivity extends AppCompatActivity {
         builder.setTitle("Remover Chamada");
         builder.setMessage("Deseja realmente remover o número " + item.getNumber() + " da lista?");
 
-        // Botão SIM
         builder.setPositiveButton("Sim", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-                // 1. Abrir conexão com o banco
                 DbHelper dbHelper = new DbHelper(MainActivity.this);
                 SQLiteDatabase database = dbHelper.getWritableDatabase();
-
-                // 2. Deletar usando o método que criamos no passo 1
                 dbHelper.deleteNumber(item.getId(), database);
-
-                // 3. Fechar banco
                 dbHelper.close();
-
-                // 4. Atualizar a lista na tela
                 readFromDB();
             }
         });
 
-        // Botão NÃO (apenas fecha o diálogo)
         builder.setNegativeButton("Não", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
@@ -93,10 +80,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Exibir o diálogo
         builder.create().show();
     }
 
+    @SuppressLint("Range")
     private void readFromDB() {
         arrayList.clear();
         DbHelper dbHelper = new DbHelper(this);
@@ -109,9 +96,15 @@ public class MainActivity extends AppCompatActivity {
                 int id = cursor.getInt(cursor.getColumnIndex("id"));
                 arrayList.add(new IncomingNumber(id, number));
             }
-            cursor.close();
-            dbHelper.close();
-            recyclerAdapter.notifyDataSetChanged();
+        }
+        cursor.close();
+        dbHelper.close();
+        recyclerAdapter.notifyDataSetChanged();
+
+        if (arrayList.isEmpty()) {
+            recyclerView.setVisibility(View.GONE);
+            textView.setVisibility(View.VISIBLE);
+        } else {
             recyclerView.setVisibility(View.VISIBLE);
             textView.setVisibility(View.GONE);
         }
@@ -120,12 +113,19 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(broadcastReceiver, new IntentFilter(DbContract.UPDATE_UI_FILTER));
+        if (Build.VERSION.SDK_INT >= 34) {
+            registerReceiver(broadcastReceiver, new IntentFilter(DbContract.UPDATE_UI_FILTER), Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(broadcastReceiver, new IntentFilter(DbContract.UPDATE_UI_FILTER));
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(broadcastReceiver);
+        try {
+            unregisterReceiver(broadcastReceiver);
+        } catch (IllegalArgumentException e) {
+        }
     }
 }
